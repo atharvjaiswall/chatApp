@@ -15,7 +15,7 @@ export const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:5173",
-      "https://your-frontend.vercel.app"
+      "https://chatapp-frontend-flax-eta.vercel.app"
 
     ],
     credentials: true
