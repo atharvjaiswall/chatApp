@@ -10,18 +10,21 @@ import { Server } from "socket.io";
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io
+// ✅ Allowed origins
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://chatapp-frontend-flax-eta.vercel.app"
+];
+
+// ✅ Socket.io
 export const io = new Server(server, {
   cors: {
-    origin: [
-      "http://localhost:5173",
-      "https://chatapp-frontend-flax-eta.vercel.app"
-
-    ],
+    origin: allowedOrigins,
     credentials: true
   }
 });
 
+// Store online users
 export const userSocketMap = {};
 
 io.on("connection", (socket) => {
@@ -29,6 +32,7 @@ io.on("connection", (socket) => {
 
   if (userId) userSocketMap[userId] = socket.id;
 
+  // Send online users to all clients
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
   socket.on("disconnect", () => {
@@ -37,26 +41,26 @@ io.on("connection", (socket) => {
   });
 });
 
-// Middleware
+// ✅ Middleware
 app.use(express.json({ limit: "4mb" }));
 
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://your-frontend.vercel.app"
-  ],
+  origin: allowedOrigins,
   credentials: true
 }));
 
-// Routes
+// ✅ Handle preflight requests
+app.options("*", cors());
+
+// ✅ Routes
 app.get("/api/status", (req, res) => res.send("Server is live"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 
-// DB
+// ✅ Connect DB
 await connectDB();
 
-// Start server
+// ✅ Start server (Render compatible)
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
