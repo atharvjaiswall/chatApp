@@ -7,54 +7,60 @@ import userRouter from "./routes/userRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
 import { Server } from "socket.io";
 
+const app = express();
+const server = http.createServer(app);
 
-// Create Express app from http server
-const app= express();
-const server=http.createServer(app)
+// Socket.io
+export const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:5173",
+      "https://your-frontend.vercel.app"
 
-// Intialised socket.io server
-export const io = new Server(server,{
-  cors:{origin:"*"}
-})
-// store the data of all online users
-export const userSocketMap = {}; //{userId:socketId}
-// socket.io connection handler
-io.on("connection",(socket)=>{
+    ],
+    credentials: true
+  }
+});
+
+export const userSocketMap = {};
+
+io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
-  
 
-  if(userId) userSocketMap[userId] = socket.id;
+  if (userId) userSocketMap[userId] = socket.id;
 
-  // emit online users to all connected clients
-  io.emit("getOnlineUsers",Object.keys(userSocketMap));
+  io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
-  // to disconnect the event
-  socket.on("disconnect",()=>{
-    //Remove the user from online list
+  socket.on("disconnect", () => {
     delete userSocketMap[userId];
-    io.emit("getOnlineUsers"),Object.keys(userSocketMap)
-  })
-})
+    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  });
+});
 
-// middleware
-app.use(express.json({limit:"4mb"}));
-app.use(cors());
+// Middleware
+app.use(express.json({ limit: "4mb" }));
 
-// Routes setup
-app.use("/api/status",(req,res)=>res.send("Server is live"))
-app.use('/api/auth',userRouter)
-app.use('/api/messages',messageRouter)
- 
-// connect to Mongodb
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://your-frontend.vercel.app"
+  ],
+  credentials: true
+}));
+
+// Routes
+app.get("/api/status", (req, res) => res.send("Server is live"));
+app.use("/api/auth", userRouter);
+app.use("/api/messages", messageRouter);
+
+// DB
 await connectDB();
 
-if(process.env.NODE_ENV !=="production"){
-  const PORT = process.env.PORT || 5000;
-  server.listen(PORT,()=>{
-  console.log("Server is running on Port:"  + PORT)
-})
+// Start server
+const PORT = process.env.PORT || 5000;
 
-}
+server.listen(PORT, () => {
+  console.log("Server is running on Port: " + PORT);
+});
 
-// export server for vercel
 export default server;
